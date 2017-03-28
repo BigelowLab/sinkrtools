@@ -37,7 +37,7 @@ x <- sinkrtools::read_matlab(inputfile, elem = inputvar)
 maskfile <- ARGS$get("maskfile")
 if (nchar(maskfile) > 0){
     maskvar <- ARGS$get("maskvar")
-    mask <- sinkertools::read_matlab(maskfile, elem = maskvar)
+    mask <- sinkrtools::read_matlab(maskfile, elem = maskvar)
     mask[is.na(mask) || is.nan(mask)] <- NA
 } else {
     mask <- NULL
