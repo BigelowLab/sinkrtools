@@ -1,0 +1,19 @@
+Package: sinkrtools
+Title: Handy tools for working with sinkr package.
+Version: 0.1
+Depends:
+    R (>= 3.0)
+Imports:
+    methods,
+    rscripting,
+    sinkr,
+    R.matlab
+Maintainer: Ben Tupper <btupper@bigelow.org>
+Author: Ben Tupper <btupper@bigelow.org>
+URL: https://github.com/btupper/sinkrtools
+License: MIT + LICENSE file
+RoxygenNote: 5.0.1
+Collate:
+    sinkrtools-package.R
+    array.R
+    io.R

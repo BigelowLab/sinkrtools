@@ -1,0 +1,59 @@
+library(rscripting)
+library(sinkrtools)
+
+
+ARGS <- CommandArgs()
+ARGS$add_argument("inputfile", 
+    help = "input matlab filename", 
+    required = TRUE)
+ARGS$add_argument("inputvar", 
+    help = "name of the item in the input matlab file",
+    default = "first")
+ARGS$add_argument("maskfile",
+    help = "input matlab mask filename",
+    default = "")
+ARGS$add_argument("maskvar", 
+    help = "name of the item in the input matlab mask file",
+    default = "nans")
+ARGS$add_argument("n_cores", 
+    help = "the number of cores for parallel processing, default = 1",
+    type = 'numeric',
+    default = 1)
+ARGS$add_argument("step",
+    help = "if n_cores > 1 then divide into steps this big",
+    type = 'numeric',
+    default = 360)
+ARGS$add_argument("output",
+    help = "filename for output matlab file",
+    default = "dineof.mat")
+ARGS$parse_arguments()
+
+inputfile <- ARGS$get("inputfile")
+inputvar <- ARGS$get("inputvar")
+if (inputvar == "first") inputvar <- 1
+
+x <- sinkrtools::read_matlab(inputfile, elem = inputvar)
+
+maskfile <- ARGS$get("maskfile")
+if (nchar(maskfile) > 0){
+    maskvar <- ARGS$get("maskvar")
+    mask <- sinkertools::read_matlab(maskfile, elem = maskvar)
+    mask[is.na(mask) || is.nan(mask)] <- NA
+} else {
+    mask <- NULL
+}
+
+n_cores <- ARGS$get("n_cores")
+if (n_cores > 1){
+    max_cores <- parallel::detectCores()
+    if (n_cores > max_cores) stop("n_cores must be <= number of cores")
+    step <- ARGS$get("step")
+}
+
+output <- ARGS$get("output")
+
+y <- sinkrtools::dineof_array(x, mask = mask, step = step, n_cores = n_cores)
+
+sinkrtools::writeMat(y, output)
+
+quit(save = "no", status = 0)
