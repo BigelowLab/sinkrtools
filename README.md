@@ -12,6 +12,18 @@ sinkrtools provide a simple interface to the [sinkr] package.
 + [sinkr](https://github.com/marchtaylor/sinkr)
 + [R.matlab](https://cran.r-project.org/web/packages/R.matlab/index.html)
 
+
+### Installation
+
+```R
+# install.packages(devtools) # if not installed already
+
+library(devtools)
+
+devtools::install_github("BigelowLab/rscripting")
+devtools::install_github("BigelowLab/sinkrtools")
+```
+
 ### Scripts
 
 `Rscript --vanilla /path/to/dineof_matlab.Rscript --inputfile foo.mat --inputvar allChl --maskfile mask.mat --maskvar nans ...`
