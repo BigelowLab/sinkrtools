@@ -2,7 +2,14 @@ library(rscripting)
 library(sinkrtools)
 
 
-ARGS <- CommandArgs()
+DEVMODE <- interactive()
+if (DEVMODE){
+    args <- strsplit("/usr/lib64/R/bin/exec/R --slave --no-restore --vanilla --file=/opt/code/R/sinkrtools/inst/scripts/dineof_matlab.Rscript --args --inputfile /opt/projects/dineof/lme08/MODIS_2003-2015_lme08_dintest.mat --maskfile /opt/projects/dineof/lme08/mask_LME08.mat", " ", fixed = TRUE)[[1]]
+} else {
+    args <- commandArgs(trailingOnly = FALSE)
+}
+
+ARGS <- CommandArgs(args)
 ARGS$add_argument("inputfile", 
     help = "input matlab filename", 
     required = TRUE)
@@ -14,7 +21,7 @@ ARGS$add_argument("maskfile",
     default = "")
 ARGS$add_argument("maskvar", 
     help = "name of the item in the input matlab mask file",
-    default = "nans")
+    default = "first")
 ARGS$add_argument("n_cores", 
     help = "the number of cores for parallel processing, default = 1",
     type = 'numeric',
@@ -28,17 +35,32 @@ ARGS$add_argument("output",
     default = "dineof.mat")
 ARGS$parse_arguments()
 
+
 inputfile <- ARGS$get("inputfile")
 inputvar <- ARGS$get("inputvar")
 if (inputvar == "first") inputvar <- 1
 
 x <- sinkrtools::read_matlab(inputfile, elem = inputvar)
+if (is.null(x)){
+    cat("error reading input file:", inputfile, "\n")
+    quit(status = 1, save = 'no')
+}
 
 maskfile <- ARGS$get("maskfile")
 if (nchar(maskfile) > 0){
     maskvar <- ARGS$get("maskvar")
+    if (maskvar == 'first') maskvar <- 1
     mask <- sinkrtools::read_matlab(maskfile, elem = maskvar)
+    if (is.null(mask)){
+        cat("error reading mask file:", maskfile, "\n")
+        quit(status = 1, save = 'no')
+    }
     mask[is.na(mask) || is.nan(mask)] <- NA
+    if (all(is.na(as.vector(mask)))){
+        cat("the mask is everywhere NaN - please check maskfile:",
+            maskfile, "\n")
+        quit(status = 1, save = 'no')
+    }       
 } else {
     mask <- NULL
 }
@@ -50,10 +72,10 @@ if (n_cores > 1){
     step <- ARGS$get("step")
 }
 
-output <- ARGS$get("output")
 
 y <- sinkrtools::dineof_array(x, mask = mask, step = step, n_cores = n_cores)
 
+output <- ARGS$get("output")
 sinkrtools::writeMat(y, output)
 
 quit(save = "no", status = 0)

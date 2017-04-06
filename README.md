@@ -2,7 +2,7 @@
 
 # sinkrtools
 
-sinkrtools provide a simple interface to the [sinkr] package.
+sinkrtools provide a simple interface to the [sinkr](https://github.com/marchtaylor/sinkr) package.
 
 
 ### Requirements

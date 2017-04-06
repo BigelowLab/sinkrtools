@@ -10,8 +10,15 @@ read_matlab <- function(filename, elem = 1){
     
     x <- try(R.matlab::readMat(filename[1]))
     if (inherits(x, 'try-error')){
+        cat("error reading matlab file:", filename[1], "\n")
         return(NULL)
     } else {
+        if (is.character(elem[1])){
+            if ( !(elem[1] %in% names(x)) ){
+                cat("element not found in matlab file:", elem[1], "\n")
+                return(NULL)
+            }
+        }
         return(x[[elem[1]]])
     }
 }
