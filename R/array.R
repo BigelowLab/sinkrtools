@@ -38,6 +38,8 @@ dineof_array <- function(x,
             stop("mask must has same [nrow, ncol] dims as input")
         imask <- if(is.logical(mask)) as.vector(mask) else as.vector(is.na(mask))
         x <- x[!imask,]
+    } else {
+        imask <- NULL
     }
     
     
@@ -61,11 +63,19 @@ dineof_array <- function(x,
         # recreate input
         x <- matrix(NA_real_, ncol = d[3], nrow = d[1]*d[2])
         # insert interpolated rows
-        x[!imask,] <- do.call(cbind,xx)
+        if (!is.null(imask)){
+            x[!imask,] <- do.call(cbind,xx)
+        } else {
+            x <- do.call(cbind, xx)
+        }
     } else {
         xa <- sinkr::dineof(x)[['Xa']]
         x <- matrix(NA_real_, ncol = d[3], nrow = d[1]*d[2])
-        x[!imask,] <- xa
+        if (!is.null(imask)){
+            x[!imask,] <- xa
+        } else {
+            x <- xa
+        }
     }
     
     # reshape to original dims
