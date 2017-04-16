@@ -19,8 +19,10 @@ read_matlab <- function(filename, elem = 1){
                 return(NULL)
             }
         }
-        return(x[[elem[1]]])
+        x <- x[[elem[1]]]
     }
+    x[is.nan(x)] <- NA
+    invisible(x)
 }
 
 #' Write a matlab file

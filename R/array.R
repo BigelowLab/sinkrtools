@@ -70,8 +70,8 @@ dineof_array <- function(x,
         }
     } else {
         xa <- sinkr::dineof(x)[['Xa']]
-        x <- matrix(NA_real_, ncol = d[3], nrow = d[1]*d[2])
         if (!is.null(imask)){
+            x <- matrix(NA_real_, ncol = d[3], nrow = d[1]*d[2])
             x[!imask,] <- xa
         } else {
             x <- xa
