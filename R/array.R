@@ -60,10 +60,11 @@ dineof_array <- function(x,
         # clean up
         parallel::stopCluster(cl)
         
-        # recreate input
-        x <- matrix(NA_real_, ncol = d[3], nrow = d[1]*d[2])
-        # insert interpolated rows
+        
         if (!is.null(imask)){
+            # recreate input
+            x <- matrix(NA_real_, ncol = d[3], nrow = d[1]*d[2])
+            # insert interpolated rows
             x[!imask,] <- do.call(cbind,xx)
         } else {
             x <- do.call(cbind, xx)
