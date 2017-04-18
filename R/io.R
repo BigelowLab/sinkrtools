@@ -35,6 +35,6 @@ write_matlab <- function(x, filename){
 
     if (missing(filename)) stop("filename is required")
     
-    R.matlab::writeMat(x, filename)
+    R.matlab::writeMat(filename, x = x)
 }
    

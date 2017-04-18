@@ -70,13 +70,13 @@ n_cores <- ARGS$get("n_cores")
 if (n_cores > 1){
     max_cores <- parallel::detectCores()
     if (n_cores > max_cores) stop("n_cores must be <= number of cores")
-    step <- ARGS$get("step")
+    stepsize <- 1
+} else {
+    stepsize <- ARGS$get("step")
 }
-
-
-y <- sinkrtools::dineof_array(x, mask = mask, step = step, n_cores = n_cores)
+y <- sinkrtools::dineof_array(x, mask = mask, step = stepsize, n_cores = n_cores)
 
 output <- ARGS$get("output")
-sinkrtools::writeMat(y, output)
+sinkrtools::write_matlab(y, output)
 
 quit(save = "no", status = 0)
