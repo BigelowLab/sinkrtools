@@ -29,7 +29,7 @@ parse_bb <- function(x = list("-72,-63,39,46")){
 quitter <- function(status = 0, 
     email = ARGS$get("email"), 
     sbj = 'obpg_fetch', 
-    msg = c("Good news - downloads complete!", ARG$get("opath"))){
+    msg = c("Good news - downloads complete!", ARGS$get("opath"))){
     if (grepl("@", email, fixed = TRUE))
         rscripting::sendmail(to = email, sbj = sbj, msg = msg)
     if (!DEVMODE) quit(status = status, save = "no")    
