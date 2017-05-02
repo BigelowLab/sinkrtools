@@ -38,3 +38,58 @@ write_matlab <- function(x, filename){
     R.matlab::writeMat(filename, x = x)
 }
    
+   
+#' Write a Raster to a mat file
+#'
+#' The output file captures basic elements of the Raster
+#'  \itemize{
+#'      \item{data the variable data}
+#'      \item{projection charcate string}
+#'      \item{locations list of cols, rows and z}
+#'  }
+#'
+#' @export
+#' @param x the Raster* object
+#' @param filename the fully qualified filename to write to
+#' @param overwrite logical, if FALSE then stop if filename already exists
+#' @param compress numeric if non-zero then gzip the result at the compression level specified
+#' @return the original Raster* invisibly
+raster2mat <- function(x, 
+    filename = "raster2mat.mat.gz", 
+    overwrite = TRUE,
+    compress = 6){
+    if (file.exists(filename[1]) && !overwrite){
+        cat("file already exists:", filename[1], "\n")
+        return(invisible(x))
+    }
+    
+    compress <- as.numeric(compress[1])
+    dat <- raster::as.array(x)
+    cols <- raster::xFromCol(x,1:ncol(x))
+    rows <- raster::yFromRow(x,1:nrow(x))
+    z <- raster::getZ(x)
+    if (is.null(z)){
+        z <- 1:raster::nlayers(x)
+    } else if (inherits(z, 'Date')){
+        z <- format(z, "%Y-%m-%d")
+    } else {
+        z <- format(z, "%Y-%m-%dT%H:%M:%S %Z")
+    }
+    
+    if (compress[1] > 0){
+        ff <- gzfile(filename[1], compress = compress[1])
+        
+    } else {
+        ff <- filename[1]
+    }
+    
+    numbytes <- R.matlab::writeMat(ff,
+        data = dat,
+        projection = raster::projection(x),
+        locations = list(cols = cols, rows = rows, z = z))
+
+    if (numbytes <= 0) cat("no data written\n")
+    
+    
+    invisible(x)
+}

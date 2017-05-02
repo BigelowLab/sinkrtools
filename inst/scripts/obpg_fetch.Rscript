@@ -1,0 +1,142 @@
+library(rscripting)
+library(obpgcrawler)
+library(sinkrtools)
+library(spnc)
+
+#Rscript --vanilla /path/to/script --platform platformname --product productname --year yyyy-yyyy --doy doy-doy --param name --bb left,right,bottom,top --opath /path/to/store --format raster|matlab --email btupper@bigelow.org
+
+
+pattern_match <- function(pats, strings, fixed = TRUE){
+    sapply(pats, 
+        function(p, strings = NULL, fixed = TRUE){
+            any(grepl(p, strings, fixed = fixed))
+        }, 
+        strings = strings, fixed = fixed)
+}
+
+parse_param <- function(x = list(value="DAY_CHL_chlor_a_9km+DAY_SST_sst_9km")){
+    strsplit(x$value[[1]],'[+-]')[[1]]
+}
+parse_range <- function(x = list("2012-2017")){
+    x <- as.numeric(strsplit(x$value[[1]],'[:+,-]')[[1]])
+    seq(from = x[1], to = x[length(x)], by = 1)
+}
+parse_bb <- function(x = list("-72,-63,39,46")){
+    x <- as.numeric(strsplit(x$value[[1]],'[,+]')[[1]])
+    x[1:4]
+}
+
+quitter <- function(status = 0, 
+    email = ARGS$get("email"), 
+    sbj = 'obpg_fetch', 
+    msg = c("Good news - downloads complete!", ARG$get("opath"))){
+    if (grepl("@", email, fixed = TRUE))
+        rscripting::sendmail(to = email, sbj = sbj, msg = msg)
+    if (!DEVMODE) quit(status = status, save = "no")    
+    invisible(NULL)
+}
+
+################################################################################
+DEVMODE <- interactive()
+if (DEVMODE){
+    args <- strsplit("/usr/lib64/R/bin/exec/R --slave --no-restore --vanilla --file=/opt/code/R/sinkrtools/inst/scripts/obpg_fetch.Rscript --args --platform MODISA --product L3SMI --year 2015-2016 --doy 180-183 --pattern DAY_CHL_chlor_a_9km+DAY_SST_sst_9km --bb -72,-63,39,46 -opath /mnt/ecocast/data/MODISA/gom", " ", fixed = TRUE)[[1]]
+} else {
+    args <- commandArgs(trailingOnly = FALSE)
+}
+
+ARGS <- rscripting::CommandArgs(args)
+ARGS$add_argument("platform", default = 'MODISA')
+ARGS$add_argument("product", default = "L3SMI")
+ARGS$add_argument("year", 
+    default = '2015',
+    type = 'character',
+    action = 'parse_range',
+    help = "year or range of years as in 1970-1973")
+ARGS$add_argument("doy", 
+    default = format(as.Date(Sys.Date()), "%j"),    
+    type = 'character',
+    action = 'parse_range',
+    help = "julian day of year or range of days as in 7-42")
+ARGS$add_argument("pattern", 
+    default = "DAY_CHL_chlor_a_9km",
+    type = 'character',
+    action = 'parse_param',
+    help = "one or more non-grep patterns for file discovery - such as DAY_CHL_chlor_a_9km+8D_SST_sst_4km" )
+ARGS$add_argument("bb", 
+    default = "-180,180,-90,90",
+    type = 'character',
+    action = 'parse_bb',
+    help = "bounding box to extract as left,right,bottom,top without spaces")
+ARGS$add_argument("opath", default = "/mnt/ecocast/data/MODISA/temp")
+ARGS$add_argument("format", default = "raster",
+    help = 'output format raster|mat|matlab - the latter two will be compressed')
+ARGS$add_argument("email", default = "no email",
+    help = "specify one or more emails like this btupper@bigelow.org+foobar@mail.net")
+ARGS$add_argument("help", default = FALSE, type = "set_true",
+    help = "output this reminder message")
+
+ARGS$parse_arguments()
+
+if (ARGS$get("help")){  
+    #ARGS$print_help()
+    quit(status = 0, save = "no")
+}
+
+
+pattern = ARGS$get("pattern")
+greplargs <- lapply(pattern, function(p) list(pattern = p, fixed = TRUE))
+fmt <- ARGS$get("format")
+bb <- ARGS$get("bb")
+opath <- ARGS$get("opath")
+if (!dir.exists(opath)){
+    ok <- dir.create(opath, recursive = TRUE)
+    if (!ok){ 
+        quitter(status = 1, message = "unable to create output path")
+    }
+}
+
+VOICE <- rscripting::Logger("obpg_fetch", file = file.path(opath, "log.txt"))
+VOICE$info("ARGS: %s", paste(args, collapse = " "))
+
+dd <- obpg_query(
+    platform = ARGS$get("platform"),
+    product = ARGS$get("product"),
+    year = ARGS$get("year"),
+    day = ARGS$get("doy"),
+    greplargs = greplargs)
+
+if (length(dd) == 0){
+    VOICE$info("no resources found")
+    quitter(msg = "no resources found")
+}
+
+fmt = 'mat'
+
+for (d in dd){
+    VOICE$info("downloading: %s", basename(d$url))
+    X <- try(SPNC(d$url))
+    if (inherits(X, 'try-error')){
+        VOICE$error("Failed to generate connection")
+    } else {
+        pm <- pattern_match(X$VARS, basename(d$url))
+        varname = names(pm)[pm]
+        x <- try(X$get_raster(varname, bb = bb))
+        if (inherits(x, 'try-error')){
+            VOICE$error("Failed to get raster")
+        }
+        nm <- gsub(".nc", "", basename(d$url), fixed = TRUE)
+        x <- switch(fmt,
+            "mat" = sinkrtools::raster2mat(x,
+                filename = file.path(opath, paste0(nm, ".mat")),
+                overwrite = TRUE),
+            "matlab" = sinkrtools::raster2mat(x,
+                filename = file.path(opath, paste0(nm, ".mat")),
+                overwrite = TRUE),
+            raster::writeRaster(x,
+                filename = file.path(opath, paste0(nm, ".grd")),
+                overwrite = TRUE))       
+    }                
+}
+    
+quitter()
+

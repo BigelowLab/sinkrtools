@@ -1,31 +1,27 @@
 library(rscripting)
 library(sinkrtools)
+library(raster)
 
+# Rscript --vanilla /opt/code/R/sinkrtools/inst/scripts/dineof_raster.Rscript --inputfile /opt/projects/dineof/NA_MODISA_45km_chlor_a.grd --inputlog"
 
 DEVMODE <- interactive()
 if (DEVMODE){
-    args <- strsplit("/usr/lib64/R/bin/exec/R --slave --no-restore --vanilla --file=/opt/code/R/sinkrtools/inst/scripts/dineof_matlab.Rscript --args --inputfile MODIS_2003-2015_lme08_dintest.mat --inputvar allCHL --maskfile mask_LME08.mat --maskvar nans", " ", fixed = TRUE)[[1]]
+    args <- strsplit("/usr/lib64/R/bin/exec/R --slave --no-restore --vanilla --file=/opt/code/R/sinkrtools/inst/scripts/dineof_raster.Rscript --args --inputfile /opt/projects/dineof/NA_MODISA_45km_chlor_a.grd --inputlog", " ", fixed = TRUE)[[1]]
 } else {
     args <- commandArgs(trailingOnly = FALSE)
 }
 
 ARGS <- CommandArgs(args)
 ARGS$add_argument("inputfile", 
-    help = "input matlab filename", 
+    help = "input raster filename", 
     required = TRUE)
-ARGS$add_argument("inputvar", 
-    help = "name of the item in the input matlab file",
-    default = "first")
 ARGS$add_argument("inputlog",
     help = "logical, if present then log10 scale the input before processing and antilog before saving",
     type = 'set_true',
     default = FALSE)
 ARGS$add_argument("maskfile",
-    help = "input matlab mask filename",
+    help = "input raster mask filename",
     default = "")
-ARGS$add_argument("maskvar", 
-    help = "name of the item in the input matlab mask file",
-    default = "first")
 ARGS$add_argument("n_cores", 
     help = "the number of cores for parallel processing, default = 1",
     type = 'numeric',
@@ -35,32 +31,28 @@ ARGS$add_argument("step",
     type = 'numeric',
     default = 360)
 ARGS$add_argument("output",
-    help = "filename for output matlab file",
-    default = "dineof.mat")
+    help = "filename for output raster file",
+    default = "dineof.grd")
 ARGS$parse_arguments()
 
 #ARGS$show()
 
 
 inputfile <- ARGS$get("inputfile")
-inputvar <- ARGS$get("inputvar")
 inputlog <- ARGS$get("inputlog")
 
-if (inputvar == "first") inputvar <- 1
-
-x <- sinkrtools::read_matlab(inputfile, elem = inputvar)
-if (is.null(x)){
+R <- try(raster::brick(inputfile))
+if (inherits(R, 'try-error')){
     cat("error reading input file:", inputfile, "\n")
     quit(status = 1, save = 'no')
 }
+x <- as.array(R)
 if (inputlog) x <- log10(x)
 
 maskfile <- ARGS$get("maskfile")
 if (nchar(maskfile) > 0){
-    maskvar <- ARGS$get("maskvar")
-    if (maskvar == 'first') maskvar <- 1
-    mask <- sinkrtools::read_matlab(maskfile, elem = maskvar)
-    if (is.null(mask)){
+    mask <- try(raster::raster(maskfile))
+    if (inherits(mask, 'try-error')){
         cat("error reading mask file:", maskfile, "\n")
         quit(status = 1, save = 'no')
     }
@@ -68,7 +60,14 @@ if (nchar(maskfile) > 0){
         cat("the mask is everywhere NaN - please check maskfile:",
             maskfile, "\n")
         quit(status = 1, save = 'no')
-    }       
+    }
+    mask <- as.array(mask)
+    # in case mask is a layer [nx,ny,nz] we take just the first layer
+    if (length(dim(mask)) > 2) mask <- mask[,,1]
+    if (!identical(dim(mask), dim(x)[1:2])){
+        cat("the mask dims do not match the input file dims\n")
+        quit(status = 1, save = 'no')
+    }        
 } else {
     mask <- NULL
 }
@@ -81,11 +80,14 @@ if (n_cores > 1){
 } else {
     stepsize <- ARGS$get("step")
 }
+
 y <- sinkrtools::dineof_array(x, mask = mask, step = stepsize, n_cores = n_cores)
 
-output <- ARGS$get("output")
 if (inputlog) y <- 10^y
 
-sinkrtools::write_matlab(y, output)
+R <- raster::setValues(R, y)
+
+output <- ARGS$get("output")
+raster::writeRaster(R, output, overwrite = TRUE, format = 'raster')
 
 quit(save = "no", status = 0)
