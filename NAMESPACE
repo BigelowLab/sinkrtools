@@ -2,6 +2,7 @@
 
 export(dineof_array)
 export(raster2mat)
+export(rasters_to_mat)
 export(read_matlab)
 export(split_vector)
 export(write_matlab)

@@ -14,7 +14,8 @@ raster2mat(x, filename = "raster2mat.mat.gz", overwrite = TRUE,
 
 \item{overwrite}{logical, if FALSE then stop if filename already exists}
 
-\item{compress}{numeric if non-zero then gzip the result at the compression level specified}
+\item{compress}{numeric if non-zero then gzip the result at the compression
+level specified}
 }
 \value{
 the original Raster* invisibly

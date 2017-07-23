@@ -52,7 +52,8 @@ write_matlab <- function(x, filename){
 #' @param x the Raster* object
 #' @param filename the fully qualified filename to write to
 #' @param overwrite logical, if FALSE then stop if filename already exists
-#' @param compress numeric if non-zero then gzip the result at the compression level specified
+#' @param compress numeric if non-zero then gzip the result at the compression
+#'    level specified
 #' @return the original Raster* invisibly
 raster2mat <- function(x, 
     filename = "raster2mat.mat.gz", 
@@ -92,4 +93,42 @@ raster2mat <- function(x,
     
     
     invisible(x)
+}
+
+
+#' Given a path to rasters and a factor for aggregating, create a brick and 
+#' save as mat.  Not to be confused with raster2mat which handles the save.
+#'
+#' @export
+#' @param srcpath character, the path to the raster files (.grd)
+#' @param fact numeric the positive aggregating factor
+#' @param dstfile the destination filename (.mat or .mat.gz)
+#' @param verbose logical
+#' @return value returned by \code{sinkrtools::raster2mat()} or NULL
+rasters_to_mat <- function(
+    srcpath = '.',
+    fact = 5,
+    dstfile = './output.mat.gz',
+    verbose = FALSE){
+ 
+    if (!file.exists(srcpath)) stop("srcpath not found\n")
+    if (!file.exists(dirname(dstfile))) stop("dstfile path not found\n")
+ 
+    if(verbose) cat("listing files\n")
+    ff <- list.files(srcpath, pattern = glob2rx("*.grd"), full.names = TRUE)
+    if (length(ff) == 0) stop("no .grd files found in:", srcpath)
+    
+    if (verbose) cat("reading", length(ff), "files into a stack\n")
+    RR <- raster::stack(ff)    
+    
+    if (fact > 1) {
+        if (verbose) cat("aggregating by factor of", fact, "\n")
+        RR <- raster::aggregate(RR, fact = c(fact[1], fact[1], 1))
+    }
+    if (verbose) cat("writing mat file:", dstfile)
+    RR <- try(raster2mat(RR, filename = dstfile))
+    if (inherits(RR, 'try-error')){
+        print(RR)
+    }
+    invisible(RR)
 }
