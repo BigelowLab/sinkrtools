@@ -4,8 +4,7 @@
 \alias{raster2mat}
 \title{Write a Raster to a mat file}
 \usage{
-raster2mat(x, filename = "raster2mat.mat.gz", overwrite = TRUE,
-  compress = 6)
+raster2mat(x, filename = "raster2mat.mat", overwrite = TRUE, compress = 0)
 }
 \arguments{
 \item{x}{the Raster* object}

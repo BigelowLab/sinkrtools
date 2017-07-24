@@ -5,17 +5,21 @@
 \title{Given a path to rasters and a factor for aggregating, create a brick and 
 save as mat.  Not to be confused with raster2mat which handles the save.}
 \usage{
-rasters_to_mat(srcpath = ".", fact = 5, dstfile = "./output.mat.gz",
-  verbose = FALSE)
+rasters_to_mat(srcpath = ".", fact = 5, logscale = FALSE,
+  dstfile = "./output.mat.gz", verbose = FALSE, ...)
 }
 \arguments{
 \item{srcpath}{character, the path to the raster files (.grd)}
 
 \item{fact}{numeric the positive aggregating factor}
 
+\item{logscale}{logical if TRUE}
+
 \item{dstfile}{the destination filename (.mat or .mat.gz)}
 
 \item{verbose}{logical}
+
+\item{...}{further arguments for \code{raster2mat()}}
 }
 \value{
 value returned by \code{sinkrtools::raster2mat()} or NULL
